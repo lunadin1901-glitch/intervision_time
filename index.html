@@ -4,16 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Согласование Интервизий</title>
-    <!-- Подключаем Tailwind для стилей -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Подключаем React и ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Подключаем Babel для JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Скрываем скроллбар для эстетики, но оставляем функциональность */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -23,48 +19,32 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, setDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // Экспортируем функции в глобальную область, чтобы React мог их использовать
         window.FirebaseAPI = {
-            initializeApp, getAuth, signInAnonymously, signInWithCustomToken,
+            initializeApp, getAuth, signInAnonymously,
             getFirestore, collection, onSnapshot, setDoc, doc
         };
     </script>
 
     <script type="text/babel">
-        // --- Утилиты для работы с датами ---
-        
-        // Получить понедельник для заданной даты
         const getStartOfWeek = (date) => {
             const d = new Date(date);
             const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Корректировка, если воскресенье
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
             return new Date(d.getFullYear(), d.getMonth(), diff);
         };
 
-        // Получить массив из 7 дней недели, начиная с понедельника
-        const getWeekDays = (startDate) => {
-            return Array.from({length: 7}, (_, i) => {
-                const d = new Date(startDate);
-                d.setDate(d.getDate() + i);
-                return d;
-            });
-        };
-
-        // Форматирование даты в ключ YYYY-MM-DD
-        const formatDateForKey = (date) => {
-            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-        };
-
-        // Форматирование заголовка дня (например, "Пн, 15.05")
+        const getWeekDays = (startDate) => Array.from({length: 7}, (_, i) => new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i));
+        
+        const formatDateForKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        
         const formatDayHeader = (date) => {
             const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
             return `${days[date.getDay()]}, ${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}`;
         };
 
-        // Форматирование для красивого вывода совпадений
         const formatFriendlyDate = (dateString) => {
             const [year, month, day] = dateString.split('-');
             const date = new Date(year, parseInt(month) - 1, day);
@@ -75,10 +55,7 @@
 
         const HOURS = Array.from({length: 13}, (_, i) => `${(i + 9).toString().padStart(2, '0')}:00`);
         
-        const USER_COLORS = [
-            'bg-blue-500', 'bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 
-            'bg-purple-500', 'bg-cyan-500', 'bg-indigo-500'
-        ];
+        const USER_COLORS = ['bg-blue-500', 'bg-rose-500', 'bg-amber-500', 'bg-emerald-500', 'bg-purple-500', 'bg-cyan-500', 'bg-indigo-500'];
 
         const UserManager = ({ users, myUid, onAddUser }) => {
             const [newUserName, setNewUserName] = React.useState('');
@@ -86,9 +63,7 @@
 
             const handleAdd = (e) => {
                 e.preventDefault();
-                if (newUserName.trim()) {
-                    onAddUser(newUserName.trim());
-                }
+                if (newUserName.trim()) onAddUser(newUserName.trim());
             };
 
             return (
@@ -97,19 +72,8 @@
                         <div>
                             <h2 className="text-lg font-semibold text-slate-800 mb-4">Представьтесь, чтобы присоединиться</h2>
                             <form onSubmit={handleAdd} className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newUserName}
-                                    onChange={(e) => setNewUserName(e.target.value)}
-                                    placeholder="Ваше имя..."
-                                    className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                />
-                                <button 
-                                    type="submit"
-                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-                                >
-                                    Войти
-                                </button>
+                                <input type="text" value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Ваше имя..." className="flex-1 px-4 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                                <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">Войти</button>
                             </form>
                         </div>
                     ) : (
@@ -117,14 +81,7 @@
                             <h2 className="text-lg font-semibold text-slate-800 mb-4">Команда онлайн</h2>
                             <div className="flex flex-wrap gap-3">
                                 {users.map(user => (
-                                    <div
-                                        key={user.id}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${
-                                            user.id === myUid 
-                                            ? 'bg-slate-800 text-white shadow-md' 
-                                            : 'bg-slate-100 text-slate-600'
-                                        }`}
-                                    >
+                                    <div key={user.id} className={`px-4 py-2 rounded-full text-sm font-medium transition-all flex items-center gap-2 ${user.id === myUid ? 'bg-slate-800 text-white shadow-md' : 'bg-slate-100 text-slate-600'}`}>
                                         <div className={`w-3 h-3 rounded-full ${user.color}`}></div>
                                         {user.name} {user.id === myUid && "(Вы)"}
                                     </div>
@@ -143,8 +100,6 @@
                 const slotKey = `${dateStr}-${hour}`;
                 const peopleHere = availability[slotKey] || [];
                 const count = peopleHere.length;
-                const isMeHere = peopleHere.includes(myUid);
-
                 let baseClass = "h-12 border-b border-r border-slate-100 transition-all relative overflow-hidden group ";
                 
                 if (isRegistered) baseClass += "cursor-pointer ";
@@ -155,69 +110,40 @@
                 else if (count === 2) baseClass += (isRegistered ? "bg-emerald-200 hover:bg-emerald-300" : "bg-emerald-200");
                 else if (count >= 3) baseClass += (isRegistered ? "bg-emerald-400 hover:bg-emerald-500 shadow-inner" : "bg-emerald-400 shadow-inner");
 
-                return { baseClass, count, isMeHere, peopleHere };
+                return { baseClass, peopleHere };
             };
 
             const monthNames = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"];
-            const currentMonth = monthNames[currentWeekStart.getMonth()];
-            const currentYear = currentWeekStart.getFullYear();
-
+            
             return (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-6">
-                    {/* Панель навигации по неделям */}
                     <div className="p-4 border-b border-slate-100 bg-slate-50 flex flex-col md:flex-row justify-between items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <button onClick={onPrevWeek} className="p-2 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
-                            </button>
-                            <button onClick={onCurrentWeek} className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-sm font-medium text-slate-700 transition-colors">
-                                Сегодня
-                            </button>
-                            <button onClick={onNextWeek} className="p-2 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
-                            </button>
-                            <span className="ml-2 text-slate-800 font-semibold capitalize">{currentMonth} {currentYear}</span>
-                        </div>
-                        
-                        <div className="flex items-center gap-4 text-xs text-slate-500">
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-white border border-slate-200 rounded"></div> 0</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-100 rounded"></div> 1</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-200 rounded"></div> 2</div>
-                            <div className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-400 rounded"></div> 3+</div>
+                            <button onClick={onPrevWeek} className="p-2 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">◁</button>
+                            <button onClick={onCurrentWeek} className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-sm font-medium text-slate-700 transition-colors">Сегодня</button>
+                            <button onClick={onNextWeek} className="p-2 hover:bg-slate-200 rounded-lg text-slate-600 transition-colors">▷</button>
+                            <span className="ml-2 text-slate-800 font-semibold capitalize">{monthNames[currentWeekStart.getMonth()]} {currentWeekStart.getFullYear()}</span>
                         </div>
                     </div>
                     
                     <div className="overflow-x-auto no-scrollbar">
                         <div className="min-w-[800px]">
-                            {/* Заголовок с датами */}
                             <div className="grid grid-cols-8 border-b border-slate-200 bg-slate-50">
                                 <div className="p-3 text-center text-sm font-medium text-slate-400 border-r border-slate-200">Время</div>
-                                {weekDays.map(date => {
-                                    const isToday = formatDateForKey(date) === formatDateForKey(new Date());
-                                    return (
-                                        <div key={date.toString()} className={`p-3 text-center text-sm font-semibold border-r border-slate-100 last:border-0 ${isToday ? 'text-indigo-600 bg-indigo-50/50' : 'text-slate-700'}`}>
-                                            {formatDayHeader(date)}
-                                        </div>
-                                    );
-                                })}
+                                {weekDays.map(date => (
+                                    <div key={date.toString()} className={`p-3 text-center text-sm font-semibold border-r border-slate-100 text-slate-700`}>
+                                        {formatDayHeader(date)}
+                                    </div>
+                                ))}
                             </div>
-
-                            {/* Сетка часов */}
                             {HOURS.map(hour => (
                                 <div key={hour} className="grid grid-cols-8">
-                                    <div className="p-2 text-center text-sm text-slate-500 border-r border-slate-200 border-b border-slate-100 bg-slate-50 flex items-center justify-center">
-                                        {hour}
-                                    </div>
+                                    <div className="p-2 text-center text-sm text-slate-500 border-r border-slate-200 border-b border-slate-100 bg-slate-50 flex items-center justify-center">{hour}</div>
                                     {weekDays.map(date => {
                                         const dateStr = formatDateForKey(date);
-                                        const { baseClass, count, isMeHere, peopleHere } = getCellStyles(dateStr, hour);
+                                        const { baseClass, peopleHere } = getCellStyles(dateStr, hour);
                                         return (
-                                            <div 
-                                                key={`${dateStr}-${hour}`}
-                                                onClick={() => isRegistered && onToggleSlot(dateStr, hour)}
-                                                className={baseClass}
-                                                title={peopleHere.map(id => users.find(u => u.id === id)?.name).join(', ')}
-                                            >
+                                            <div key={`${dateStr}-${hour}`} onClick={() => isRegistered && onToggleSlot(dateStr, hour)} className={baseClass}>
                                                 <div className="absolute inset-0 flex items-center justify-center gap-1 flex-wrap p-1">
                                                     {peopleHere.map(id => {
                                                         const user = users.find(u => u.id === id);
@@ -236,66 +162,42 @@
         };
 
         const MatchResults = ({ availability, users }) => {
-            // Парсим ключи (теперь это дата-время) и ищем совпадения (3+ человек)
             const matches = Object.entries(availability)
                 .filter(([_, people]) => people.length >= 3)
                 .map(([key, people]) => {
-                    // key выглядит как "2026-05-15-09:00"
                     const parts = key.split('-');
-                    const hour = parts.pop(); // "09:00"
-                    const dateStr = parts.join('-'); // "2026-05-15"
+                    const hour = parts.pop();
+                    const dateStr = parts.join('-');
                     return { dateStr, hour, people, key };
                 })
-                .sort((a, b) => {
-                    // Сначала сортируем по убыванию количества людей
-                    if (b.people.length !== a.people.length) {
-                        return b.people.length - a.people.length;
-                    }
-                    // Затем хронологически (по дате и времени)
-                    return a.key.localeCompare(b.key);
-                });
+                .sort((a, b) => b.people.length !== a.people.length ? b.people.length - a.people.length : a.key.localeCompare(b.key));
 
-            if (matches.length === 0) {
-                return (
-                    <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl text-center">
-                        <div className="text-4xl mb-3">🕒</div>
-                        <h3 className="text-lg font-semibold text-indigo-900 mb-1">Пока нет совпадений</h3>
-                        <p className="text-indigo-700 text-sm">Отметьте свободное время. Как только 3 или более коллег совпадут в любой из недель, здесь появится идеальное время.</p>
-                    </div>
-                );
-            }
+            if (matches.length === 0) return (
+                <div className="bg-indigo-50 p-6 rounded-2xl text-center border border-indigo-100">
+                    <h3 className="text-lg font-semibold text-indigo-900 mb-1">Пока нет совпадений</h3>
+                    <p className="text-indigo-700 text-sm">Ждем 3 или более коллег.</p>
+                </div>
+            );
 
             return (
                 <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-2xl">
-                    <h3 className="text-lg font-semibold text-emerald-900 mb-4 flex items-center gap-2">
-                        <span>✨</span> Найдено время для встречи
-                    </h3>
-                    <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
+                    <h3 className="text-lg font-semibold text-emerald-900 mb-4">✨ Идеальное время</h3>
+                    <div className="space-y-3 max-h-[60vh] overflow-y-auto no-scrollbar">
                         {matches.map((match, idx) => (
                             <div key={idx} className="bg-white p-4 rounded-xl shadow-sm flex items-center justify-between border border-emerald-50">
                                 <div className="flex items-center gap-4">
                                     <div className="bg-emerald-100 text-emerald-800 font-bold py-2 px-3 rounded-lg text-center min-w-[105px]">
-                                        <div className="text-xs uppercase tracking-wider">{formatFriendlyDate(match.dateStr)}</div>
+                                        <div className="text-xs uppercase">{formatFriendlyDate(match.dateStr)}</div>
                                         <div className="text-xl">{match.hour}</div>
                                     </div>
-                                    <div>
-                                        <div className="flex flex-wrap gap-1.5 mt-1">
-                                            {match.people.map(id => {
-                                                const user = users.find(u => u.id === id);
-                                                return user ? (
-                                                    <span key={id} className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 border border-slate-100 text-xs font-medium text-slate-600">
-                                                        <div className={`w-2 h-2 rounded-full ${user.color}`}></div>
-                                                        {user.name.substring(0, 10)}{user.name.length > 10 ? '...' : ''}
-                                                    </span>
-                                                ) : null;
-                                            })}
-                                        </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {match.people.map(id => {
+                                            const user = users.find(u => u.id === id);
+                                            return user ? <span key={id} className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-slate-50 text-xs font-medium text-slate-600"><div className={`w-2 h-2 rounded-full ${user.color}`}></div>{user.name}</span> : null;
+                                        })}
                                     </div>
                                 </div>
-                                <div className="text-emerald-600 font-bold text-lg flex items-center gap-1 pl-2 border-l border-slate-100">
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                    {match.people.length}
-                                </div>
+                                <div className="text-emerald-600 font-bold text-lg">{match.people.length} чел.</div>
                             </div>
                         ))}
                     </div>
@@ -309,10 +211,6 @@
             const [myUid, setMyUid] = React.useState(null);
             const [isReady, setIsReady] = React.useState(false);
             const [dbApi, setDbApi] = React.useState(null);
-            const [linkCopied, setLinkCopied] = React.useState(false);
-            const [showPublishModal, setShowPublishModal] = React.useState(false);
-            
-            // Состояние для текущей просматриваемой недели
             const [currentWeekStart, setCurrentWeekStart] = React.useState(getStartOfWeek(new Date()));
 
             React.useEffect(() => {
@@ -320,78 +218,66 @@
                 let unsubAvail = () => {};
 
                 const initFirebase = async () => {
-                    while (!window.FirebaseAPI) {
-                        await new Promise(r => setTimeout(r, 50));
-                    }
+                    while (!window.FirebaseAPI) await new Promise(r => setTimeout(r, 50));
 
                     try {
-                        const { initializeApp, getAuth, signInAnonymously, signInWithCustomToken, getFirestore, collection, onSnapshot, setDoc, doc } = window.FirebaseAPI;
+                        const { initializeApp, getAuth, signInAnonymously, getFirestore, collection, onSnapshot, setDoc, doc } = window.FirebaseAPI;
 
-                        const appId = typeof __app_id !== 'undefined' ? __app_id : 'intervision-app';
-                        let config = { projectId: "demo-project" };
-                        if (typeof __firebase_config !== 'undefined') {
-                            try { config = JSON.parse(__firebase_config); } catch(e) {}
-                        }
+                        // ВАШИ КЛЮЧИ ИЗ FIREBASE
+                        const config = {
+                            apiKey: "AIzaSyCO8vMwdzDeezk8OwlLZZ7YCG0ZHK_tM8w",
+                            authDomain: "intervisiontime.firebaseapp.com",
+                            projectId: "intervisiontime",
+                            storageBucket: "intervisiontime.firebasestorage.app",
+                            messagingSenderId: "240799750951",
+                            appId: "1:240799750951:web:4e65b53f223da58c862702"
+                        };
                         
                         const app = initializeApp(config);
                         const auth = getAuth(app);
                         const db = getFirestore(app);
 
-                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                        let user;
-                        if (token) {
-                            const cred = await signInWithCustomToken(auth, token);
-                            user = cred.user;
-                        } else {
-                            const cred = await signInAnonymously(auth);
-                            user = cred.user;
-                        }
+                        const cred = await signInAnonymously(auth);
+                        if (!cred.user) return; 
                         
-                        if (!user) return; 
-                        setMyUid(user.uid);
-                        setDbApi({ db, setDoc, doc, appId });
+                        setMyUid(cred.user.uid);
+                        setDbApi({ db, setDoc, doc, appId: 'intervision-team-app' });
 
-                        const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
+                        const usersRef = collection(db, 'users');
                         unsubUsers = onSnapshot(usersRef, (snap) => {
                             const loadedUsers = [];
                             snap.forEach(d => loadedUsers.push(d.data()));
                             setUsers(loadedUsers);
-                        }, (err) => console.error("Ошибка синхронизации:", err));
+                        }, err => console.error("Ошибка пользователей:", err));
 
-                        const availRef = collection(db, 'artifacts', appId, 'public', 'data', 'availability_v2'); // Обновили коллекцию, т.к. структура ключей изменилась
+                        const availRef = collection(db, 'availability');
                         unsubAvail = onSnapshot(availRef, (snap) => {
                             const loadedAvail = {};
-                            snap.forEach(d => {
-                                loadedAvail[d.id] = d.data().people || [];
-                            });
+                            snap.forEach(d => { loadedAvail[d.id] = d.data().people || []; });
                             setAvailability(loadedAvail);
                             setIsReady(true);
-                        }, (err) => console.error("Ошибка синхронизации:", err));
+                        }, err => console.error("Ошибка сетки:", err));
 
                     } catch (error) {
-                        console.error("Ошибка сети:", error);
-                        setIsReady(true);
+                        console.error("Ошибка сети или базы данных:", error);
+                        // Если база еще не создана, покажем, что загрузилось, чтобы вы видели интерфейс
+                        setIsReady(true); 
                     }
                 };
                 
                 initFirebase();
-
-                return () => {
-                    unsubUsers();
-                    unsubAvail();
-                };
+                return () => { unsubUsers(); unsubAvail(); };
             }, []);
 
             const handleAddUser = async (name) => {
                 if (!dbApi || !myUid) return;
                 const color = USER_COLORS[users.length % USER_COLORS.length];
-                const userDoc = dbApi.doc(dbApi.db, 'artifacts', dbApi.appId, 'public', 'data', 'users', myUid);
+                const userDoc = dbApi.doc(dbApi.db, 'users', myUid);
                 await dbApi.setDoc(userDoc, { id: myUid, name, color });
             };
 
             const handleToggleSlot = async (dateStr, hour) => {
                 if (!dbApi || !myUid) return;
-                
                 const isRegistered = users.some(u => u.id === myUid);
                 if (!isRegistered) return;
 
@@ -399,113 +285,30 @@
                 const currentPeople = availability[slotKey] || [];
                 const isSelected = currentPeople.includes(myUid);
                 
-                let newPeople;
-                if (isSelected) {
-                    newPeople = currentPeople.filter(id => id !== myUid);
-                } else {
-                    newPeople = [...currentPeople, myUid];
-                }
-
+                const newPeople = isSelected ? currentPeople.filter(id => id !== myUid) : [...currentPeople, myUid];
                 setAvailability(prev => ({ ...prev, [slotKey]: newPeople }));
 
-                const slotDoc = dbApi.doc(dbApi.db, 'artifacts', dbApi.appId, 'public', 'data', 'availability_v2', slotKey);
+                const slotDoc = dbApi.doc(dbApi.db, 'availability', slotKey);
                 await dbApi.setDoc(slotDoc, { people: newPeople });
             };
 
-            // Функции переключения недель
-            const handlePrevWeek = () => {
-                const newDate = new Date(currentWeekStart);
-                newDate.setDate(newDate.getDate() - 7);
-                setCurrentWeekStart(newDate);
-            };
-
-            const handleNextWeek = () => {
-                const newDate = new Date(currentWeekStart);
-                newDate.setDate(newDate.getDate() + 7);
-                setCurrentWeekStart(newDate);
-            };
-
-            const handleCurrentWeek = () => {
-                setCurrentWeekStart(getStartOfWeek(new Date()));
-            };
-
-            const handleCopyLink = () => {
-                const currentUrl = window.location.href;
-                if (currentUrl.startsWith('blob:')) {
-                    setShowPublishModal(true);
-                    return;
-                }
-
-                const dummy = document.createElement('input');
-                document.body.appendChild(dummy);
-                dummy.value = currentUrl;
-                dummy.select();
-                document.execCommand('copy');
-                document.body.removeChild(dummy);
-                setLinkCopied(true);
-                setTimeout(() => setLinkCopied(false), 2000);
-            };
-
-            if (!isReady) {
-                return (
-                    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-                        <div className="animate-pulse flex flex-col items-center">
-                            <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                            <p className="text-slate-500 font-medium">Синхронизация календарей...</p>
-                        </div>
-                    </div>
-                );
-            }
+            if (!isReady) return (
+                <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                    <p className="text-slate-500 font-medium">Синхронизация с базой данных...</p>
+                </div>
+            );
 
             const isRegistered = users.some(u => u.id === myUid);
 
             return (
                 <div className="max-w-5xl mx-auto p-4 md:p-8">
                     <header className="mb-8">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
-                                    <span className="text-4xl">🗓️</span> Интервизии: Синхронизатор
-                                </h1>
-                                <p className="text-slate-500 mt-2">Выбирайте недели, отмечайте время и находите совпадения.</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={handleCopyLink}
-                                    className={`text-sm py-2 px-4 rounded-xl font-medium transition-colors shadow-sm flex items-center gap-2 ${
-                                        linkCopied 
-                                        ? 'bg-emerald-100 text-emerald-700' 
-                                        : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                                    }`}
-                                >
-                                    {linkCopied ? '✓ Скопировано' : '🔗 Копировать ссылку'}
-                                </button>
-                                <div className="bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
-                                    <span className="relative flex h-2.5 w-2.5">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-                                    </span>
-                                    В сети
-                                </div>
-                            </div>
-                        </div>
+                        <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">🗓️ Интервизии</h1>
                     </header>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2">
-                            <UserManager 
-                                users={users} 
-                                myUid={myUid} 
-                                onAddUser={handleAddUser}
-                            />
-                            
-                            {!isRegistered ? (
-                                <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 mb-6 flex items-center gap-3">
-                                    <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                                    Представьтесь выше, чтобы начать отмечать свободное время.
-                                </div>
-                            ) : null}
-
+                            <UserManager users={users} myUid={myUid} onAddUser={handleAddUser} />
                             <ScheduleGrid 
                                 availability={availability} 
                                 myUid={myUid}
@@ -513,56 +316,15 @@
                                 users={users}
                                 onToggleSlot={handleToggleSlot}
                                 currentWeekStart={currentWeekStart}
-                                onPrevWeek={handlePrevWeek}
-                                onNextWeek={handleNextWeek}
-                                onCurrentWeek={handleCurrentWeek}
+                                onPrevWeek={() => { const d = new Date(currentWeekStart); d.setDate(d.getDate() - 7); setCurrentWeekStart(d); }}
+                                onNextWeek={() => { const d = new Date(currentWeekStart); d.setDate(d.getDate() + 7); setCurrentWeekStart(d); }}
+                                onCurrentWeek={() => setCurrentWeekStart(getStartOfWeek(new Date()))}
                             />
                         </div>
-                        
                         <div className="lg:col-span-1">
-                            <div className="sticky top-8">
-                                <MatchResults 
-                                    availability={availability} 
-                                    users={users}
-                                />
-                            </div>
+                            <div className="sticky top-8"><MatchResults availability={availability} users={users} /></div>
                         </div>
                     </div>
-
-                    {showPublishModal && (
-                        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl relative">
-                                <button 
-                                    onClick={() => setShowPublishModal(false)}
-                                    className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </button>
-                                <div className="text-4xl mb-4">🚀</div>
-                                <h3 className="text-xl font-bold text-slate-800 mb-2">Приложение нужно опубликовать</h3>
-                                <p className="text-slate-600 mb-4 text-sm">
-                                    Сейчас мы находимся в закрытой лаборатории, поэтому ссылка начинается на <strong>blob:</strong> и недоступна вашим коллегам.
-                                </p>
-                                <p className="text-slate-600 mb-4 text-sm">
-                                    Чтобы приложение заработало в сети, сделайте 3 простых шага:
-                                </p>
-                                <ol className="list-decimal list-inside text-sm text-slate-700 space-y-2 mb-6">
-                                    <li>Скачайте этот код (кнопка со стрелочкой вниз в правом верхнем углу этой панели).</li>
-                                    <li>Откройте сервис <strong>tiiny.host</strong> или <strong>drop.netlify.com</strong>.</li>
-                                    <li>Перетащите туда скачанный HTML-файл.</li>
-                                </ol>
-                                <p className="text-slate-600 mb-6 text-sm">
-                                    Сервис выдаст вам настоящую ссылку (например, <em>your-app.tiiny.site</em>). Именно её и нужно отправлять в Telegram! Когда вы откроете её, кнопка копирования заработает как надо.
-                                </p>
-                                <button 
-                                    onClick={() => setShowPublishModal(false)}
-                                    className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
-                                >
-                                    Понятно, сделаю!
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
             );
         };
