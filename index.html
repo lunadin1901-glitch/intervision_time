@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Согласование Интервизий</title>
+    <!-- Подключаем Tailwind для стилей -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключаем React и ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Подключаем Babel для JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
         body { font-family: 'Inter', sans-serif; }
@@ -230,7 +233,8 @@
                             projectId: "intervisiontime",
                             storageBucket: "intervisiontime.firebasestorage.app",
                             messagingSenderId: "240799750951",
-                            appId: "1:240799750951:web:4e65b53f223da58c862702"
+                            appId: "1:240799750951:web:4e65b53f223da58c862702",
+                            measurementId: "G-3QGYV1BBXF"
                         };
                         
                         const app = initializeApp(config);
@@ -241,16 +245,18 @@
                         if (!cred.user) return; 
                         
                         setMyUid(cred.user.uid);
-                        setDbApi({ db, setDoc, doc, appId: 'intervision-team-app' });
+                        const appId = 'intervision';
+                        setDbApi({ db, setDoc, doc, appId });
 
-                        const usersRef = collection(db, 'users');
+                        // Пути для хранения данных
+                        const usersRef = collection(db, 'artifacts', appId, 'public', 'data', 'users');
                         unsubUsers = onSnapshot(usersRef, (snap) => {
                             const loadedUsers = [];
                             snap.forEach(d => loadedUsers.push(d.data()));
                             setUsers(loadedUsers);
                         }, err => console.error("Ошибка пользователей:", err));
 
-                        const availRef = collection(db, 'availability');
+                        const availRef = collection(db, 'artifacts', appId, 'public', 'data', 'availability');
                         unsubAvail = onSnapshot(availRef, (snap) => {
                             const loadedAvail = {};
                             snap.forEach(d => { loadedAvail[d.id] = d.data().people || []; });
@@ -260,7 +266,6 @@
 
                     } catch (error) {
                         console.error("Ошибка сети или базы данных:", error);
-                        // Если база еще не создана, покажем, что загрузилось, чтобы вы видели интерфейс
                         setIsReady(true); 
                     }
                 };
@@ -272,7 +277,7 @@
             const handleAddUser = async (name) => {
                 if (!dbApi || !myUid) return;
                 const color = USER_COLORS[users.length % USER_COLORS.length];
-                const userDoc = dbApi.doc(dbApi.db, 'users', myUid);
+                const userDoc = dbApi.doc(dbApi.db, 'artifacts', dbApi.appId, 'public', 'data', 'users', myUid);
                 await dbApi.setDoc(userDoc, { id: myUid, name, color });
             };
 
@@ -288,7 +293,7 @@
                 const newPeople = isSelected ? currentPeople.filter(id => id !== myUid) : [...currentPeople, myUid];
                 setAvailability(prev => ({ ...prev, [slotKey]: newPeople }));
 
-                const slotDoc = dbApi.doc(dbApi.db, 'availability', slotKey);
+                const slotDoc = dbApi.doc(dbApi.db, 'artifacts', dbApi.appId, 'public', 'data', 'availability', slotKey);
                 await dbApi.setDoc(slotDoc, { people: newPeople });
             };
 
